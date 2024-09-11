@@ -72,9 +72,17 @@ func generateTexture(width, height int) *ebiten.Image {
 	cos := eqt.NewOpCos()
 	cos.Children[0] = opY
 
+	mult := eqt.NewOpMult()
+	mult.Children[0] = sin
+	mult.Children[1] = opY
+
+	atan2 := eqt.NewOpAtan2()
+	atan2.Children[0] = opX
+	atan2.Children[1] = cos
+
 	plus := eqt.NewOpPlus()
-	plus.Children[0] = sin
-	plus.Children[1] = cos
+	plus.Children[0] = mult
+	plus.Children[1] = atan2
 	fmt.Printf("plus: %v\n", plus)
 
 	constant := eqt.NewOpConstant()

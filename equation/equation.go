@@ -113,7 +113,40 @@ func (op *OpMinus) Eval(x, y float32) float32 {
 
 func (op *OpMinus) String() string {
 	return "Minus(" + op.Children[0].String() + ", " + op.Children[1].String() + ")"
+}
 
+// ANCHOR
+type OpMult struct {
+	Node
+}
+
+func NewOpMult() *OpMult {
+	return &OpMult{NewNode(2)}
+}
+
+func (op *OpMult) Eval(x, y float32) float32 {
+	return op.Children[0].Eval(x, y) * op.Children[1].Eval(x, y)
+}
+
+func (op *OpMult) String() string {
+	return "Mult(" + op.Children[0].String() + ", " + op.Children[1].String() + ")"
+}
+
+// ANCHOR
+type OpDiv struct {
+	Node
+}
+
+func NewOpDiv() *OpDiv {
+	return &OpDiv{NewNode(2)}
+}
+
+func (op *OpDiv) Eval(x, y float32) float32 {
+	return op.Children[0].Eval(x, y) / op.Children[1].Eval(x, y)
+}
+
+func (op *OpDiv) String() string {
+	return "Div(" + op.Children[0].String() + ", " + op.Children[1].String() + ")"
 }
 
 // ANCHOR
@@ -148,4 +181,38 @@ func (op *OpCos) Eval(x, y float32) float32 {
 
 func (op *OpCos) String() string {
 	return "Cos(" + op.Children[0].String() + ")"
+}
+
+// ANCHOR
+type OpAtan struct {
+	Node
+}
+
+func NewOpAtan() *OpAtan {
+	return &OpAtan{NewNode(1)}
+}
+
+func (op *OpAtan) Eval(x, y float32) float32 {
+	return float32(math.Atan(float64(op.Children[0].Eval(x, y))))
+}
+
+func (op *OpAtan) String() string {
+	return "Atan(" + op.Children[0].String() + ")"
+}
+
+// ANCHOR
+type OpAtan2 struct {
+	Node
+}
+
+func NewOpAtan2() *OpAtan2 {
+	return &OpAtan2{NewNode(2)}
+}
+
+func (op *OpAtan2) Eval(x, y float32) float32 {
+	return float32(math.Atan2(float64(op.Children[0].Eval(x, y)), float64(op.Children[1].Eval(x, y))))
+}
+
+func (op *OpAtan2) String() string {
+	return "Atan2(" + op.Children[0].String() + ", " + op.Children[1].String() + ")"
 }
