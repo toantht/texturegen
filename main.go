@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"math"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	eqt "github.com/toantht/texturegen/equation"
 )
 
 const screenWidth, screenHeight int = 1920 / 4, 1080 / 4
@@ -61,20 +63,31 @@ func randomEquation(depth int) EquationFunc {
 func generateTexture(width, height int) *ebiten.Image {
 	texture := ebiten.NewImage(width, height)
 
-	const equationDepth int = 4
+	opX := eqt.NewOpX()
+	opY := eqt.NewOpY()
 
-	rEquation := randomEquation(equationDepth)
-	gEquation := randomEquation(equationDepth)
-	bEquation := randomEquation(equationDepth)
+	sin := eqt.NewOpSin()
+	sin.Children[0] = opX
+
+	cos := eqt.NewOpCos()
+	cos.Children[0] = opY
+
+	plus := eqt.NewOpPlus()
+	plus.Children[0] = sin
+	plus.Children[1] = cos
+	fmt.Printf("plus: %v\n", plus)
+
+	constant := eqt.NewOpConstant()
+	fmt.Printf("constant: %v\n", constant)
 
 	for y := 0; y < height; y++ {
 		fy := float32(y) / 20
 		for x := 0; x < width; x++ {
 			fx := float32(x) / 20
 
-			r := rEquation(fx, fy) * 255
-			g := gEquation(fx, fy) * 255
-			b := bEquation(fx, fy) * 255
+			r := plus.Eval(fx, fy) * 255
+			g := plus.Eval(fy, fx) * 255
+			b := constant.Eval(fx, fy) * 255
 			a := 255
 
 			pixel := &color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
