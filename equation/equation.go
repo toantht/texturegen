@@ -9,6 +9,10 @@ import (
 type BaseNode interface {
 	Eval(x, y float32) float32
 	String() string
+	GetParent() BaseNode
+	SetParent(parent BaseNode)
+	AddRandomNode(node BaseNode)
+	AddLeafNode(leaf BaseNode) bool // true if successfully added
 }
 
 // ANCHOR
@@ -23,6 +27,37 @@ func (node *Node) Eval(x, y float32) float32 {
 
 func (node *Node) String() string {
 	panic("call string on basenode")
+}
+
+func (node *Node) GetParent() BaseNode {
+	return node.Parent
+}
+
+func (node *Node) SetParent(parent BaseNode) {
+	node.Parent = parent
+}
+
+func (node *Node) AddRandomNode(newNode BaseNode) {
+	index := rand.Intn(len(node.Children))
+	if node.Children[index] == nil {
+		node.Children[index] = newNode
+		newNode.SetParent(node)
+	} else {
+		node.Children[index].AddRandomNode(newNode)
+	}
+}
+
+func (node *Node) AddLeafNode(leaf BaseNode) bool {
+	for i, child := range node.Children {
+		if child == nil {
+			node.Children[i] = leaf
+			leaf.SetParent(node)
+			return true
+		} else if node.Children[i].AddLeafNode(leaf) {
+			return true
+		}
+	}
+	return false
 }
 
 func NewNode(size int) Node {
@@ -70,7 +105,7 @@ type OpConstant struct {
 }
 
 func NewOpConstant() *OpConstant {
-	return &OpConstant{NewNode(0), rand.Float32()}
+	return &OpConstant{NewNode(0), rand.Float32()*2 - 1}
 }
 
 func (op *OpConstant) Eval(x, y float32) float32 {
@@ -215,4 +250,40 @@ func (op *OpAtan2) Eval(x, y float32) float32 {
 
 func (op *OpAtan2) String() string {
 	return "Atan2(" + op.Children[0].String() + ", " + op.Children[1].String() + ")"
+}
+
+func RandomOpNode() BaseNode {
+	n := rand.Intn(8)
+	switch n {
+	case 0:
+		return NewOpPlus()
+	case 1:
+		return NewOpMinus()
+	case 2:
+		return NewOpMult()
+	case 3:
+		return NewOpDiv()
+	case 4:
+		return NewOpSin()
+	case 5:
+		return NewOpCos()
+	case 6:
+		return NewOpAtan()
+	case 7:
+		return NewOpAtan2()
+	}
+	panic("get random node failed")
+}
+
+func RandomLeafNode() BaseNode {
+	n := rand.Intn(3)
+	switch n {
+	case 0:
+		return NewOpX()
+	case 1:
+		return NewOpY()
+	case 2:
+		return NewOpConstant()
+	}
+	panic("get random node failed")
 }

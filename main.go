@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"log"
-	"math"
 	"time"
 
 	"math/rand"
@@ -18,84 +16,35 @@ const screenWidth, screenHeight int = 1920 / 4, 1080 / 4
 
 type EquationFunc func(x, y float32) float32
 
-func randomEquation(depth int) EquationFunc {
-	if depth <= 0 {
-		switch rand.Intn(3) {
-		case 0:
-			return func(x, y float32) float32 { return x }
-		case 1:
-			return func(x, y float32) float32 { return y }
-		default:
-			constant := rand.Float32()*2 - 1
-			return func(x, y float32) float32 { return constant }
-		}
+func randomEquation(nodeCount int) eqt.BaseNode {
+	node := eqt.RandomOpNode()
+
+	for i := 0; i < nodeCount; i++ {
+		node.AddRandomNode(eqt.RandomOpNode())
 	}
 
-	switch rand.Intn(4) {
-	case 0:
-		f1 := randomEquation(depth - 1)
-		f2 := randomEquation(depth - 1)
-		return func(x, y float32) float32 {
-			return (f1(x, y) + f2(x, y)) / 2
-		}
-	case 1:
-		f1 := randomEquation(depth - 1)
-		f2 := randomEquation(depth - 1)
-		return func(x, y float32) float32 {
-			return f1(x, y) * f2(x, y)
-		}
-	case 2:
-		f := randomEquation(depth - 1)
-		return func(x, y float32) float32 {
-			r64 := float64(f(x, y))
-			return float32(math.Sin(r64))
-		}
-	case 3:
-		f := randomEquation(depth - 1)
-		return func(x, y float32) float32 {
-			r64 := float64(f(x, y))
-			return float32(math.Cos(r64))
-		}
+	for node.AddLeafNode(eqt.RandomLeafNode()) {
 	}
-	panic("randomize equation failed")
+
+	return node
 }
 
 func generateTexture(width, height int) *ebiten.Image {
 	texture := ebiten.NewImage(width, height)
 
-	opX := eqt.NewOpX()
-	opY := eqt.NewOpY()
-
-	sin := eqt.NewOpSin()
-	sin.Children[0] = opX
-
-	cos := eqt.NewOpCos()
-	cos.Children[0] = opY
-
-	mult := eqt.NewOpMult()
-	mult.Children[0] = sin
-	mult.Children[1] = opY
-
-	atan2 := eqt.NewOpAtan2()
-	atan2.Children[0] = opX
-	atan2.Children[1] = cos
-
-	plus := eqt.NewOpPlus()
-	plus.Children[0] = mult
-	plus.Children[1] = atan2
-	fmt.Printf("plus: %v\n", plus)
-
-	constant := eqt.NewOpConstant()
-	fmt.Printf("constant: %v\n", constant)
+	nodeCount := 8
+	rEquation := randomEquation(nodeCount)
+	gEquation := randomEquation(nodeCount)
+	bEquation := randomEquation(nodeCount)
 
 	for y := 0; y < height; y++ {
-		fy := float32(y) / 20
+		fy := float32(y)/float32(height)*2 - 1
 		for x := 0; x < width; x++ {
-			fx := float32(x) / 20
+			fx := float32(x)/float32(width)*2 - 1
 
-			r := plus.Eval(fx, fy) * 255
-			g := plus.Eval(fy, fx) * 255
-			b := constant.Eval(fx, fy) * 255
+			r := rEquation.Eval(fx, fy)*255 + 127
+			g := gEquation.Eval(fy, fx)*255 + 127
+			b := bEquation.Eval(fx, fy)*255 + 127
 			a := 255
 
 			pixel := &color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
