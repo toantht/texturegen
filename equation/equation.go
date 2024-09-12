@@ -89,11 +89,11 @@ func GetNthNode(tree BaseNode, n int) BaseNode {
 
 	var dfs func(node BaseNode)
 	dfs = func(node BaseNode) {
-		count++
 		if count == n {
 			result = node
 			return
 		}
+		count++
 
 		for _, child := range node.GetChildren() {
 			dfs(child)
@@ -377,4 +377,11 @@ func RandomLeafNode() BaseNode {
 		return NewOpConstant()
 	}
 	panic("get random node failed")
+}
+
+func PickRandomNode(tree BaseNode) BaseNode {
+	count := tree.NodeCount()
+	n := rand.Intn(count)
+	result := GetNthNode(tree, n)
+	return result
 }

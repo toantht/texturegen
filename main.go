@@ -14,7 +14,26 @@ import (
 
 const screenWidth, screenHeight int = 1920 / 4, 1080 / 4
 
-type EquationFunc func(x, y float32) float32
+type textureEquation struct {
+	r eqt.BaseNode
+	g eqt.BaseNode
+	b eqt.BaseNode
+}
+
+func (t *textureEquation) String() string {
+	return "(EquationImage \n" + t.r.String() + "\n" + t.g.String() + "\n" + t.b.String() + ")"
+}
+
+func NewTextureEquation() *textureEquation {
+	opNodeCount := 1
+
+	t := &textureEquation{}
+	t.r = randomEquation(opNodeCount)
+	t.g = randomEquation(opNodeCount)
+	t.b = randomEquation(opNodeCount)
+
+	return t
+}
 
 func randomEquation(nodeCount int) eqt.BaseNode {
 	node := eqt.RandomOpNode()
@@ -29,22 +48,41 @@ func randomEquation(nodeCount int) eqt.BaseNode {
 	return node
 }
 
-func generateTexture(width, height int) *ebiten.Image {
-	texture := ebiten.NewImage(width, height)
+func (t *textureEquation) mutate() {
+	n := rand.Intn(3)
+	switch n {
+	case 0:
+		node := eqt.PickRandomNode(t.r)
+		mutatedNode := eqt.Mutate(node)
+		if node == t.r {
+			t.r = mutatedNode
+		}
+	case 1:
+		node := eqt.PickRandomNode(t.g)
+		mutatedNode := eqt.Mutate(node)
+		if node == t.g {
+			t.g = mutatedNode
+		}
+	case 2:
+		node := eqt.PickRandomNode(t.b)
+		mutatedNode := eqt.Mutate(node)
+		if node == t.b {
+			t.b = mutatedNode
+		}
+	}
+}
 
-	nodeCount := 8
-	rEquation := randomEquation(nodeCount)
-	gEquation := randomEquation(nodeCount)
-	bEquation := randomEquation(nodeCount)
+func generateTexture(t *textureEquation, width, height int) *ebiten.Image {
+	texture := ebiten.NewImage(width, height)
 
 	for y := 0; y < height; y++ {
 		fy := float32(y)/float32(height)*2 - 1
 		for x := 0; x < width; x++ {
 			fx := float32(x)/float32(width)*2 - 1
 
-			r := rEquation.Eval(fx, fy)*255 + 127
-			g := gEquation.Eval(fy, fx)*255 + 127
-			b := bEquation.Eval(fx, fy)*255 + 127
+			r := t.r.Eval(fx, fy)*255 + 127
+			g := t.g.Eval(fy, fx)*255 + 127
+			b := t.b.Eval(fx, fy)*255 + 127
 			a := 255
 
 			pixel := &color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
@@ -57,12 +95,14 @@ func generateTexture(width, height int) *ebiten.Image {
 
 // Game implements ebiten.Game interface.
 type Game struct {
-	texture *ebiten.Image
+	texture         *ebiten.Image
+	textureEquation *textureEquation
 }
 
 func NewGame() *Game {
-	texture := generateTexture(screenWidth, screenHeight)
-	g := &Game{texture: texture}
+	textureEquation := NewTextureEquation()
+	texture := generateTexture(textureEquation, screenWidth, screenHeight)
+	g := &Game{texture: texture, textureEquation: textureEquation}
 	return g
 }
 
@@ -71,7 +111,11 @@ func NewGame() *Game {
 func (g *Game) Update() error {
 	// Write your game's logical update.
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.texture = generateTexture(screenWidth, screenHeight)
+		g.texture = generateTexture(g.textureEquation, screenWidth, screenHeight)
+	}
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
+		g.textureEquation.mutate()
+		g.texture = generateTexture(g.textureEquation, screenWidth, screenHeight)
 	}
 	return nil
 }
