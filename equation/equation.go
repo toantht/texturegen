@@ -11,8 +11,11 @@ type BaseNode interface {
 	String() string
 	GetParent() BaseNode
 	SetParent(parent BaseNode)
+	GetChildren() []BaseNode
+	SetChildren(children []BaseNode)
 	AddRandomNode(node BaseNode)
 	AddLeafNode(leaf BaseNode) bool // true if successfully added
+	NodeCount() int
 }
 
 // ANCHOR
@@ -35,6 +38,14 @@ func (node *Node) GetParent() BaseNode {
 
 func (node *Node) SetParent(parent BaseNode) {
 	node.Parent = parent
+}
+
+func (node *Node) GetChildren() []BaseNode {
+	return node.Children
+}
+
+func (node *Node) SetChildren(children []BaseNode) {
+	node.Children = children
 }
 
 func (node *Node) AddRandomNode(newNode BaseNode) {
@@ -60,8 +71,88 @@ func (node *Node) AddLeafNode(leaf BaseNode) bool {
 	return false
 }
 
+func (node *Node) NodeCount() int {
+	count := 1
+	for _, child := range node.Children {
+		count += child.NodeCount()
+	}
+	return count
+}
+
 func NewNode(size int) Node {
 	return Node{nil, make([]BaseNode, size)}
+}
+
+func GetNthNode(tree BaseNode, n int) BaseNode {
+	count := 0
+	var result BaseNode
+
+	var dfs func(node BaseNode)
+	dfs = func(node BaseNode) {
+		count++
+		if count == n {
+			result = node
+			return
+		}
+
+		for _, child := range node.GetChildren() {
+			dfs(child)
+			if result != nil {
+				return
+			}
+		}
+	}
+
+	dfs(tree)
+
+	if result == nil {
+		panic("node does not exist")
+	}
+
+	return result
+}
+
+func Mutate(node BaseNode) BaseNode {
+	var newNode BaseNode
+
+	opTypeCount := 8
+	leafTypeCount := 3
+	n := rand.Intn(opTypeCount + leafTypeCount)
+	if n < 8 {
+		newNode = RandomOpNode()
+	} else {
+		newNode = RandomLeafNode()
+	}
+
+	// Point ParentNode to NewNode
+	if parentNode := node.GetParent(); parentNode != nil {
+		for i, child := range parentNode.GetChildren() {
+			if child == node {
+				parentNode.GetChildren()[i] = newNode
+			}
+		}
+		newNode.SetParent(parentNode)
+	}
+
+	// Add children from OldNode to NewNode
+	for i, child := range node.GetChildren() {
+		if i >= len(newNode.GetChildren()) {
+			break
+		}
+		newNode.GetChildren()[i] = child
+		child.SetParent(newNode)
+	}
+
+	// Add leaf to children if they are empty
+	for i, child := range newNode.GetChildren() {
+		if child == nil {
+			leaf := RandomLeafNode()
+			newNode.GetChildren()[i] = leaf
+			leaf.SetParent(newNode)
+		}
+	}
+
+	return newNode
 }
 
 // ANCHOR
