@@ -14,12 +14,12 @@ import (
 
 var screenWidth, screenHeight int = 1920 / 4, 1080 / 4
 
-var rows, cols int = 3, 3
+var rows, cols int = 10, 20
 var numOfTextures = rows * cols
-var textureWidth = float32(screenWidth) / float32(rows) * 0.9
-var textureHeight = float32(screenHeight) / float32(cols) * 0.9
-var paddingWidth = float32(screenWidth) / float32(rows+1) * 0.1
-var paddingHeight = float32(screenHeight) / float32(cols+1) * 0.1
+var textureWidth = float32(screenWidth/cols) * 0.9
+var textureHeight = float32(screenHeight/rows) * 0.9
+var paddingWidth = float32(screenWidth) * 0.1 / float32(cols+1)
+var paddingHeight = float32(screenHeight) * 0.1 / float32(rows+1)
 
 type texture struct {
 	index    int
@@ -173,10 +173,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for i, tex := range g.textures {
 		if tex != nil {
 			col := i % cols
-			row := (i - col) / rows
+			row := (i - col) / cols
 			op := &ebiten.DrawImageOptions{}
-			xOffset := int(paddingWidth)*(col+1) + int(textureWidth)*col
-			yOffset := int(paddingHeight)*(row+1) + int(textureHeight)*row
+			xOffset := paddingWidth*float32(col+1) + textureWidth*float32(col)
+			yOffset := paddingHeight*float32(row+1) + textureHeight*float32(row)
 			op.GeoM.Translate(float64(xOffset), float64(yOffset))
 			screen.DrawImage(tex.image, op)
 		}
