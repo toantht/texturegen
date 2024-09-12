@@ -12,7 +12,32 @@ import (
 	eqt "github.com/toantht/texturegen/equation"
 )
 
-const screenWidth, screenHeight int = 1920 / 4, 1080 / 4
+var screenWidth, screenHeight int = 1920 / 4, 1080 / 4
+
+var rows, cols int = 3, 3
+var numOfTextures = rows * cols
+var textureWidth = float32(screenWidth) / float32(rows) * 0.9
+var textureHeight = float32(screenHeight) / float32(cols) * 0.9
+var paddingWidth = float32(screenWidth) / float32(rows+1) * 0.1
+var paddingHeight = float32(screenHeight) / float32(cols+1) * 0.1
+
+type texture struct {
+	equation *textureEquation
+	image    *ebiten.Image
+}
+
+func NewTexture(index int) *texture {
+	equation := NewTextureEquation()
+	image := generateTexture(equation, int(textureWidth), int(textureHeight))
+	t := &texture{equation, image}
+	return t
+}
+
+func (t *texture) mutate() {
+	t.equation.mutate()
+	image := generateTexture(t.equation, int(textureWidth), int(textureHeight))
+	t.image = image
+}
 
 type textureEquation struct {
 	r eqt.BaseNode
@@ -25,7 +50,7 @@ func (t *textureEquation) String() string {
 }
 
 func NewTextureEquation() *textureEquation {
-	opNodeCount := 1
+	opNodeCount := 20
 
 	t := &textureEquation{}
 	t.r = randomEquation(opNodeCount)
@@ -95,28 +120,26 @@ func generateTexture(t *textureEquation, width, height int) *ebiten.Image {
 
 // Game implements ebiten.Game interface.
 type Game struct {
-	texture         *ebiten.Image
-	textureEquation *textureEquation
+	textures []*texture
 }
 
 func NewGame() *Game {
-	textureEquation := NewTextureEquation()
-	texture := generateTexture(textureEquation, screenWidth, screenHeight)
-	g := &Game{texture: texture, textureEquation: textureEquation}
-	return g
+	textures := make([]*texture, numOfTextures)
+	for i := range numOfTextures {
+		textures[i] = NewTexture(i)
+	}
+	return &Game{textures: textures}
 }
 
 // Update proceeds the game state.
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
 	// Write your game's logical update.
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.textureEquation = NewTextureEquation()
-		g.texture = generateTexture(g.textureEquation, screenWidth, screenHeight)
-	}
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
-		g.textureEquation.mutate()
-		g.texture = generateTexture(g.textureEquation, screenWidth, screenHeight)
+	keySpace := ebiten.KeySpace
+	if inpututil.IsKeyJustPressed(keySpace) {
+		for _, tex := range g.textures {
+			tex.mutate()
+		}
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
@@ -130,7 +153,18 @@ func (g *Game) Update() error {
 // Draw is called every frame (typically 1/60[s] for 60Hz display).
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Write your game's rendering.
-	screen.DrawImage(g.texture, nil)
+	for row := 0; row < rows; row++ {
+		rowf := float32(row)
+		for col := 0; col < cols; col++ {
+			colf := float32(col)
+			op := &ebiten.DrawImageOptions{}
+			xOffset := paddingWidth*(colf+1) + textureWidth*colf
+			yOffset := paddingHeight*(rowf+1) + textureHeight*rowf
+			op.GeoM.Translate(float64(xOffset), float64(yOffset))
+			index := row*cols + col
+			screen.DrawImage(g.textures[index].image, op)
+		}
+	}
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
