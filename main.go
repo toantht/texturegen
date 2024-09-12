@@ -111,12 +111,18 @@ func NewGame() *Game {
 func (g *Game) Update() error {
 	// Write your game's logical update.
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		g.textureEquation = NewTextureEquation()
 		g.texture = generateTexture(g.textureEquation, screenWidth, screenHeight)
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
 		g.textureEquation.mutate()
 		g.texture = generateTexture(g.textureEquation, screenWidth, screenHeight)
 	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+		return ebiten.Termination
+	}
+
 	return nil
 }
 
