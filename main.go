@@ -22,6 +22,7 @@ var paddingWidth = float32(screenWidth) / float32(rows+1) * 0.1
 var paddingHeight = float32(screenHeight) / float32(cols+1) * 0.1
 
 type texture struct {
+	index    int
 	equation *textureEquation
 	image    *ebiten.Image
 }
@@ -29,7 +30,7 @@ type texture struct {
 func NewTexture(index int) *texture {
 	equation := NewTextureEquation()
 	image := generateTexture(equation, int(textureWidth), int(textureHeight))
-	t := &texture{equation, image}
+	t := &texture{index, equation, image}
 	return t
 }
 
@@ -50,7 +51,7 @@ func (t *textureEquation) String() string {
 }
 
 func NewTextureEquation() *textureEquation {
-	opNodeCount := 20
+	opNodeCount := rand.Intn(100)
 
 	t := &textureEquation{}
 	t.r = randomEquation(opNodeCount)
@@ -120,15 +121,19 @@ func generateTexture(t *textureEquation, width, height int) *ebiten.Image {
 
 // Game implements ebiten.Game interface.
 type Game struct {
-	textures []*texture
+	texturesChannel chan *texture
+	textures        []*texture
 }
 
 func NewGame() *Game {
+	texChan := make(chan *texture)
 	textures := make([]*texture, numOfTextures)
 	for i := range numOfTextures {
-		textures[i] = NewTexture(i)
+		go func(i int) {
+			texChan <- NewTexture(i)
+		}(i)
 	}
-	return &Game{textures: textures}
+	return &Game{textures: textures, texturesChannel: texChan}
 }
 
 // Update proceeds the game state.
@@ -138,7 +143,11 @@ func (g *Game) Update() error {
 	keySpace := ebiten.KeySpace
 	if inpututil.IsKeyJustPressed(keySpace) {
 		for _, tex := range g.textures {
-			tex.mutate()
+			go func() {
+				if tex != nil {
+					tex.mutate()
+				}
+			}()
 		}
 	}
 
@@ -153,16 +162,23 @@ func (g *Game) Update() error {
 // Draw is called every frame (typically 1/60[s] for 60Hz display).
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Write your game's rendering.
-	for row := 0; row < rows; row++ {
-		rowf := float32(row)
-		for col := 0; col < cols; col++ {
-			colf := float32(col)
+	select {
+	case tex, ok := <-g.texturesChannel:
+		if ok {
+			g.textures[tex.index] = tex
+		}
+	default:
+	}
+
+	for i, tex := range g.textures {
+		if tex != nil {
+			col := i % cols
+			row := (i - col) / rows
 			op := &ebiten.DrawImageOptions{}
-			xOffset := paddingWidth*(colf+1) + textureWidth*colf
-			yOffset := paddingHeight*(rowf+1) + textureHeight*rowf
+			xOffset := int(paddingWidth)*(col+1) + int(textureWidth)*col
+			yOffset := int(paddingHeight)*(row+1) + int(textureHeight)*row
 			op.GeoM.Translate(float64(xOffset), float64(yOffset))
-			index := row*cols + col
-			screen.DrawImage(g.textures[index].image, op)
+			screen.DrawImage(tex.image, op)
 		}
 	}
 }
