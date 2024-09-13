@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	eqt "github.com/toantht/texturegen/equation"
+	"github.com/toantht/texturegen/gui"
 )
 
 var screenWidth, screenHeight int = 1920 / 4, 1080 / 4
@@ -17,7 +19,7 @@ var screenWidth, screenHeight int = 1920 / 4, 1080 / 4
 var rows, cols int = 10, 20
 var numOfTextures = rows * cols
 var textureWidth = float32(screenWidth/cols) * 0.9
-var textureHeight = float32(screenHeight/rows) * 0.9
+var textureHeight = float32((screenHeight-50)/rows) * 0.9
 var paddingWidth = float32(screenWidth) * 0.1 / float32(cols+1)
 var paddingHeight = float32(screenHeight) * 0.1 / float32(rows+1)
 
@@ -123,17 +125,21 @@ func generateTexture(t *textureEquation, width, height int) *ebiten.Image {
 type Game struct {
 	texturesChannel chan *texture
 	textures        []*texture
+	button          *gui.Button
 }
 
 func NewGame() *Game {
 	texChan := make(chan *texture)
 	textures := make([]*texture, numOfTextures)
+
+	button := gui.NewButton((screenWidth-80)/2, (screenHeight - 40), 80, 30)
+
 	for i := range numOfTextures {
 		go func(i int) {
 			texChan <- NewTexture(i)
 		}(i)
 	}
-	return &Game{textures: textures, texturesChannel: texChan}
+	return &Game{textures: textures, texturesChannel: texChan, button: button}
 }
 
 // Update proceeds the game state.
@@ -153,6 +159,10 @@ func (g *Game) Update() error {
 
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return ebiten.Termination
+	}
+
+	if g.button.IsClicked() {
+		fmt.Println("Clicked")
 	}
 
 	return nil
@@ -181,6 +191,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			screen.DrawImage(tex.image, op)
 		}
 	}
+	g.button.Draw(screen)
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
