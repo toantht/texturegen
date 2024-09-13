@@ -22,6 +22,7 @@ var textureWidth = float32(screenWidth/cols) * 0.9
 var textureHeight = float32((screenHeight-50)/rows) * 0.9
 var paddingWidth = float32(screenWidth) * 0.1 / float32(cols+1)
 var paddingHeight = float32(screenHeight) * 0.1 / float32(rows+1)
+var borderWidth = min(textureWidth/20, 2)
 
 type texture struct {
 	index    int
@@ -56,6 +57,20 @@ func (t *texture) update() {
 			t.selected = !t.selected
 		}
 	}
+}
+
+func (t *texture) draw(screen *ebiten.Image) {
+	if t.selected {
+		border := ebiten.NewImage(int(textureWidth+borderWidth*2), int(textureHeight+borderWidth*2))
+		border.Fill(color.RGBA{255, 255, 0, 255})
+		borderOp := &ebiten.DrawImageOptions{}
+		borderOp.GeoM.Translate(float64(t.x)-float64(borderWidth), float64(t.y)-float64(borderWidth))
+		screen.DrawImage(border, borderOp)
+	}
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(t.x), float64(t.y))
+	screen.DrawImage(t.image, op)
 }
 
 type textureEquation struct {
@@ -166,8 +181,9 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(keySpace) {
 		for _, tex := range g.textures {
 			go func() {
-				if tex != nil {
+				if tex != nil && tex.selected {
 					tex.mutate()
+					tex.selected = false
 				}
 			}()
 		}
@@ -209,9 +225,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, tex := range g.textures {
 		if tex != nil {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(tex.x), float64(tex.y))
-			screen.DrawImage(tex.image, op)
+			tex.draw(screen)
 		}
 	}
 	g.button.Draw(screen)
