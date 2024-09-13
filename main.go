@@ -27,12 +27,19 @@ type texture struct {
 	index    int
 	equation *textureEquation
 	image    *ebiten.Image
+	x, y     int
+	selected bool
 }
 
 func NewTexture(index int) *texture {
 	equation := NewTextureEquation()
 	image := generateTexture(equation, int(textureWidth), int(textureHeight))
-	t := &texture{index, equation, image}
+	col := index % cols
+	row := index / cols
+	x := paddingWidth*float32(col+1) + textureWidth*float32(col)
+	y := paddingHeight*float32(row+1) + textureHeight*float32(row)
+
+	t := &texture{index, equation, image, int(x), int(y), false}
 	return t
 }
 
@@ -40,6 +47,15 @@ func (t *texture) mutate() {
 	t.equation.mutate()
 	image := generateTexture(t.equation, int(textureWidth), int(textureHeight))
 	t.image = image
+}
+
+func (t *texture) update() {
+	mx, my := ebiten.CursorPosition()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
+		if mx >= t.x && mx <= t.x+int(textureWidth) && my >= t.y && my <= t.y+int(textureHeight) {
+			t.selected = !t.selected
+		}
+	}
 }
 
 type textureEquation struct {
@@ -163,6 +179,17 @@ func (g *Game) Update() error {
 
 	if g.button.IsClicked() {
 		fmt.Println("Clicked")
+		for _, t := range g.textures {
+			if t != nil && t.selected {
+				t.mutate()
+			}
+		}
+	}
+
+	for _, t := range g.textures {
+		if t != nil {
+			t.update()
+		}
 	}
 
 	return nil
@@ -180,14 +207,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	default:
 	}
 
-	for i, tex := range g.textures {
+	for _, tex := range g.textures {
 		if tex != nil {
-			col := i % cols
-			row := (i - col) / cols
 			op := &ebiten.DrawImageOptions{}
-			xOffset := paddingWidth*float32(col+1) + textureWidth*float32(col)
-			yOffset := paddingHeight*float32(row+1) + textureHeight*float32(row)
-			op.GeoM.Translate(float64(xOffset), float64(yOffset))
+			op.GeoM.Translate(float64(tex.x), float64(tex.y))
 			screen.DrawImage(tex.image, op)
 		}
 	}
