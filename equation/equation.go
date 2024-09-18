@@ -106,6 +106,18 @@ func CopyTree(node BaseNode) BaseNode {
 	return newNode
 }
 
+func ReplaceNode(old BaseNode, new BaseNode){
+	parent := old.GetParent()
+	if parent != nil {
+		for i, child := range parent.GetChildren(){
+			if child == old {
+				parent.GetChildren()[i] = new
+			}
+		}
+	}
+	new.SetParent(parent)
+}
+
 func GetNthNode(tree BaseNode, n int) BaseNode {
 	count := 0
 	var result BaseNode

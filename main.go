@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"log"
 	"time"
@@ -16,7 +15,7 @@ import (
 
 var screenWidth, screenHeight int = 1920 / 4, 1080 / 4
 
-var rows, cols int = 10, 20
+var rows, cols int = 3, 3
 var numOfTextures = rows * cols
 var textureWidth = float32(screenWidth/cols) * 0.9
 var textureHeight = float32((screenHeight-50)/rows) * 0.9
@@ -42,6 +41,45 @@ func NewTexture(index int) *texture {
 
 	t := &texture{index, equation, image, int(x), int(y), false}
 	return t
+}
+
+func crossover(a *textureEquation, b *textureEquation) *textureEquation {
+	aq := copyTextureEquation(a)
+	aColor := aq.pickRandomColor()
+	aNode := eqt.PickRandomNode(aColor)
+
+	bColor := b.pickRandomColor()
+	bNode := eqt.PickRandomNode(bColor)
+
+	eqt.ReplaceNode(aNode, bNode)
+	return aq
+}
+
+func evolve(selectedEquations []*textureEquation) []*textureEquation {
+	eqs := make([]*textureEquation, numOfTextures)
+
+	n := len(selectedEquations)
+	i := 0
+	for i < numOfTextures {
+		a := selectedEquations[rand.Intn(n)]
+		b := selectedEquations[rand.Intn(n)]
+		eqs[i] = crossover(a, b)
+		i++
+	}
+
+	for _, eq := range eqs {
+		n := rand.Intn(4)
+		for i := 0; i < n; i++ {
+			eq.mutate()
+		}
+	}
+	return eqs
+}
+
+func (t *texture) applyEquation(e *textureEquation) {
+	t.equation = e
+	image := generateTexture(t.equation, int(textureWidth), int(textureHeight))
+	t.image = image
 }
 
 func (t *texture) mutate() {
@@ -84,7 +122,7 @@ func (t *textureEquation) String() string {
 }
 
 func NewTextureEquation() *textureEquation {
-	opNodeCount := rand.Intn(100)
+	opNodeCount := rand.Intn(100) + 1
 
 	t := &textureEquation{}
 	t.r = randomEquation(opNodeCount)
@@ -92,6 +130,24 @@ func NewTextureEquation() *textureEquation {
 	t.b = randomEquation(opNodeCount)
 
 	return t
+}
+
+func (t *textureEquation) pickRandomColor() eqt.BaseNode {
+	n := rand.Intn(3)
+	switch n {
+	case 0:
+		return t.r
+	case 1:
+		return t.g
+	case 2:
+		return t.b
+	}
+	panic("pick random failed")
+}
+
+func copyTextureEquation(t *textureEquation) *textureEquation {
+	result := &textureEquation{eqt.CopyTree(t.r), eqt.CopyTree(t.g), eqt.CopyTree(t.b)}
+	return result
 }
 
 func randomEquation(opNodeCount int) eqt.BaseNode {
@@ -198,10 +254,17 @@ func (g *Game) Update() error {
 	}
 
 	if g.button.IsClicked() {
-		fmt.Println("Clicked")
+		selectedEquations := make([]*textureEquation, 0)
 		for _, t := range g.textures {
 			if t != nil && t.selected {
-				t.mutate()
+				selectedEquations = append(selectedEquations, t.equation)
+			}
+		}
+		if len(selectedEquations) > 0 {
+			eqs := evolve(selectedEquations)
+			for i := range g.textures {
+				g.textures[i].applyEquation(eqs[i])
+				g.textures[i].selected = false
 			}
 		}
 	}
