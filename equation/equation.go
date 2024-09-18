@@ -3,6 +3,7 @@ package equation
 import (
 	"math"
 	"math/rand"
+	"reflect"
 	"strconv"
 )
 
@@ -81,6 +82,28 @@ func (node *Node) NodeCount() int {
 
 func NewNode(size int) Node {
 	return Node{nil, make([]BaseNode, size)}
+}
+
+func CopyTree(node BaseNode) BaseNode {
+	if node == nil {
+		return nil
+	}
+
+	nodeType := reflect.ValueOf(node).Elem().Type()
+	newNode := reflect.New(nodeType).Interface().(BaseNode)
+
+	switch n := node.(type) {
+	case *OpConstant:
+		newNode.(*OpConstant).value = n.value
+	}
+
+	newChildren := make([]BaseNode, len(node.GetChildren()))
+	newNode.SetChildren(newChildren)
+	for i := range newChildren {
+		newChildren[i] = CopyTree(node.GetChildren()[i])
+		newChildren[i].SetParent(newNode)
+	}
+	return newNode
 }
 
 func GetNthNode(tree BaseNode, n int) BaseNode {
