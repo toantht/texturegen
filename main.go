@@ -94,10 +94,14 @@ func NewTextureEquation() *textureEquation {
 	return t
 }
 
-func randomEquation(nodeCount int) eqt.BaseNode {
+func randomEquation(opNodeCount int) eqt.BaseNode {
+	if opNodeCount < 1 {
+		return nil
+	}
+
 	node := eqt.RandomOpNode()
 
-	for i := 0; i < nodeCount; i++ {
+	for i := 1; i < opNodeCount; i++ {
 		node.AddRandomNode(eqt.RandomOpNode())
 	}
 
