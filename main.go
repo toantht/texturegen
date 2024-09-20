@@ -217,6 +217,7 @@ type Game struct {
 	texturesChannel chan *texture
 	textures        []*texture
 	button          *gui.Button
+	zoomImage       *ebiten.Image
 }
 
 func NewGame() *Game {
@@ -237,6 +238,24 @@ func NewGame() *Game {
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
 	// Write your game's logical update.
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton2) {
+		if g.zoomImage != nil {
+			g.zoomImage = nil
+		} else {
+			mx, my := ebiten.CursorPosition()
+			for _, t := range g.textures {
+				if mx >= t.x && mx <= t.x+int(textureWidth) && my >= t.y && my <= t.y+int(textureHeight) {
+					g.zoomImage = generateTexture(t.equation, screenWidth, screenHeight)
+				}
+			}
+		}
+	}
+
+	if g.zoomImage != nil {
+		return nil
+	}
+
 	keySpace := ebiten.KeySpace
 	if inpututil.IsKeyJustPressed(keySpace) {
 		for _, tex := range g.textures {
@@ -288,6 +307,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			g.textures[tex.index] = tex
 		}
 	default:
+	}
+
+	if g.zoomImage != nil {
+		screen.DrawImage(g.zoomImage, nil)
+		return
 	}
 
 	for _, tex := range g.textures {
