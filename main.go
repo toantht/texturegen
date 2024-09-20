@@ -13,6 +13,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	eqt "github.com/toantht/texturegen/equation"
 	"github.com/toantht/texturegen/gui"
+	"github.com/toantht/texturegen/parser"
 )
 
 var screenWidth, screenHeight int = 1920 / 4, 1080 / 4
@@ -355,6 +356,21 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	game := NewGame()
+
+	args := os.Args
+	if len(args) > 1 {
+		bytes, err := os.ReadFile(args[1])
+		if err != nil {
+			panic("read file error")
+		}
+
+		s := string(bytes)
+		tokens := parser.Lex(s)
+		imageTree := parser.Parse(tokens)
+		texEq := &textureEquation{imageTree.GetChildren()[0], imageTree.GetChildren()[1], imageTree.GetChildren()[2]}
+		game.zoomImage = generateTexture(texEq, screenWidth, screenHeight)
+	}
+
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
