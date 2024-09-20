@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
+	"os"
 	"time"
 
 	"math/rand"
@@ -212,12 +214,26 @@ func generateTexture(t *textureEquation, width, height int) *ebiten.Image {
 	return texture
 }
 
+func exportTextureEquation(t *textureEquation) {
+	timestamp := time.Now().UnixMilli()
+	filename := fmt.Sprintf("%d.eqt", timestamp)
+
+	file, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	fmt.Fprint(file, t.String())
+}
+
 // Game implements ebiten.Game interface.
 type Game struct {
-	texturesChannel chan *texture
-	textures        []*texture
-	button          *gui.Button
-	zoomImage       *ebiten.Image
+	texturesChannel     chan *texture
+	textures            []*texture
+	button              *gui.Button
+	zoomImage           *ebiten.Image
+	zoomTextureEquation *textureEquation
 }
 
 func NewGame() *Game {
@@ -247,12 +263,16 @@ func (g *Game) Update() error {
 			for _, t := range g.textures {
 				if mx >= t.x && mx <= t.x+int(textureWidth) && my >= t.y && my <= t.y+int(textureHeight) {
 					g.zoomImage = generateTexture(t.equation, screenWidth, screenHeight)
+					g.zoomTextureEquation = t.equation
 				}
 			}
 		}
 	}
 
-	if g.zoomImage != nil {
+	if g.zoomTextureEquation != nil {
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			exportTextureEquation(g.zoomTextureEquation)
+		}
 		return nil
 	}
 
